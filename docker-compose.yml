@@ -1,0 +1,39 @@
+version: '3.9'
+services:
+  nginx:
+    build: ./nginx
+    container_name: nginx
+    depends_on:
+      - server
+    ports:
+      - 8080:80
+
+  server:
+    container_name: server
+    build:
+      context: ./server  # Dockerfileを置いているディレクトリ
+      dockerfile: Dockerfile  # Dockerfileのファイル名
+    working_dir: /usr/src/app  # 作業ディレクトリを指定
+    volumes:
+      - ./server/vite-project:/usr/src/app:cached
+      - node_modules:/usr/src/app/node_modules  # 特定のパスを独立した名前付きボリュームとして定義
+    tty: true  # コンテナを正常終了するのを防ぐ
+    ports:
+      - '5173:5173'  # 公開用のポート指定。ホスト側:コンテナ側
+    command: npm run dev --host  # viteの実行コマンド
+    depends_on:
+      - mongo
+
+  mongo:
+    image: mongo
+    container_name: mongo
+    environment:
+      MONGO_INITDB_DATABASE: admin
+    volumes:
+      - ./mongo/init.js:/docker-entrypoint-initdb.d/init.js:ro
+      - ./mongo/mongo-data:/data/db
+    # Start mongo with authentication enabled
+    command: [mongod, --auth]
+
+volumes:  # 名前付きボリュームの設定
+  node_modules:
